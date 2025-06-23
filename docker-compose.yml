@@ -1,0 +1,140 @@
+version: '3.8'
+networks:
+  kafka_overlay_net:
+    driver: overlay
+    attachable: true
+
+volumes:
+  kafka-data-controller-0:
+    driver: local
+  kafka-data-broker-0:
+    driver: local
+  kafka-connect-data:
+    driver: local
+
+services:
+
+  kafka-controller-0:
+    image: confluentinc/cp-kafka:7.9.0
+    hostname: kafka-controller-0
+    container_name: kafka-controller-0
+    networks:
+      - kafka_overlay_net
+    ports:
+      - '9093:9093'
+    environment:
+      CLUSTER_ID: Rv_mOiSXQMSkcOpL_jZ01Q
+      KAFKA_PROCESS_ROLES: controller
+      KAFKA_NODE_ID: 1001
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1001@kafka-controller-0:9093
+      KAFKA_LISTENERS: CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: CONTROLLER://kafka-controller-0:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+      KAFKA_SSL_CLIENT_AUTH: required
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0.jks
+      KAFKA_SSL_KEYSTORE_PASSWORD: confluent
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-truststore.jks
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: confluent
+      KAFKA_LOG_DIRS: /var/lib/kafka/data/controller-data
+    volumes:
+      - >-
+        ./certs/kafka-controller-0.jks:/etc/kafka/secrets/kafka-controller-0.jks:ro
+      - >-
+        ./certs/kafka-controller-0-truststore.jks:/etc/kafka/secrets/kafka-controller-0-truststore.jks:ro
+      - kafka-data-controller-0:/var/lib/kafka/data
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+
+  kafka-broker-0:
+    image: confluentinc/cp-kafka:7.9.0
+    hostname: kafka-broker-0
+    container_name: kafka-broker-0
+    networks:
+      - kafka_overlay_net
+    ports:
+      - '9092:9092'
+    environment:
+      CLUSTER_ID: Rv_mOiSXQMSkcOpL_jZ01Q
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_NODE_ID: 2001
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1001@kafka-controller-0:9093
+      KAFKA_LISTENERS: CLIENT://0.0.0.0:9092,BROKER://0.0.0.0:9091,CONTROLLER://0.0.0.0:9090
+      KAFKA_ADVERTISED_LISTENERS: >-
+        CLIENT://kafka-broker-0:9092,BROKER://kafka-broker-0:9091,CONTROLLER://kafka-broker-0:9090
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:SASL_SSL,BROKER:SSL,CONTROLLER:SSL
+      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_LISTENER_NAME_CLIENT_SCRAM_SHA_512_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required;
+      KAFKA_LISTENER_NAME_CLIENT_SSL_CLIENT_AUTH: none
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0.jks
+      KAFKA_SSL_KEYSTORE_PASSWORD: confluent
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-truststore.jks
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: confluent
+      KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: required
+      KAFKA_LISTENER_NAME_CONTROLLER_SSL_CLIENT_AUTH: required
+      KAFKA_LOG_DIRS: /var/lib/kafka/data/broker-data
+    volumes:
+      - ./certs/kafka-broker-0.jks:/etc/kafka/secrets/kafka-broker-0.jks:ro
+      - >-
+        ./certs/kafka-broker-0-truststore.jks:/etc/kafka/secrets/kafka-broker-0-truststore.jks:ro
+      - kafka-data-broker-0:/var/lib/kafka/data
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.9.0
+    hostname: kafka-connect
+    container_name: kafka-connect
+    networks:
+      - kafka_overlay_net
+    ports:
+      - '8083:8083'
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka-broker-0:9092
+      CONNECT_GROUP_ID: connect-cluster-group
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-status
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_KEY_CONVERTER_SCHEMAS_ENABLE: 'false'
+      CONNECT_INTERNAL_VALUE_CONVERTER_SCHEMAS_ENABLE: 'false'
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+      CONNECT_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_SASL_MECHANISM: SCRAM-SHA-512
+      CONNECT_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.scram.ScramLoginModule required
+        username="ninja" password="hi";
+      CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
+      CONNECT_SSL_TRUSTSTORE_PASSWORD: confluent
+      CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+    volumes:
+      - >-
+        ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro
+      - kafka-connect-data:/var/lib/kafka/connect-data
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+

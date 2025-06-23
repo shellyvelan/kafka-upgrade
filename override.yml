@@ -1,0 +1,9 @@
+# override.yml
+version: '3.8'
+services:
+  kafka-broker-0:
+    deploy:
+      replicas: 0
+  kafka-connect:
+    deploy:
+      replicas: 0
