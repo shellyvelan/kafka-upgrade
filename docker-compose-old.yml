@@ -1,4 +1,3 @@
-# You can uncomment and configure these for Docker Swarm if needed
 # networks:
 #   kafka_overlay_net:
 #     driver: overlay
@@ -21,33 +20,28 @@ services:
     # networks:
     #   - kafka_overlay_net
     ports:
-      - '9093:9093' # Controller listener port
+      - '9093:9093'
     environment:
-      # Keep environments as they are, only paths adjusted in volumes
       CLUSTER_ID: Rv_mOiSXQMSkcOpL_jZ01Q
       KAFKA_PROCESS_ROLES: controller
       KAFKA_NODE_ID: 1001
-      # Adjusted for a single controller setup
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1001@kafka-controller-0:9093
       KAFKA_LISTENERS: CONTROLLER://kafka-controller-0:9093
 
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
-      KAFKA_CONTROLLER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "" # https
+      KAFKA_CONTROLLER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "" # dont need
 
       KAFKA_SSL_CLIENT_AUTH: required
-      # Updated keystore location to match script output
-      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-keystore.jks
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0.jks
       KAFKA_SSL_KEYSTORE_PASSWORD: confluent
-      # Updated truststore location to match script output
       KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-truststore.jks
       KAFKA_SSL_TRUSTSTORE_PASSWORD: confluent
 
       KAFKA_LOG_DIRS: /var/lib/kafka/data/controller-data
     volumes:
-      # Updated volume paths to match script's generated filenames
-      - ./certs/kafka-controller-0-keystore.jks:/etc/kafka/secrets/kafka-controller-0-keystore.jks:ro
+      - ./certs/kafka-controller-0.jks:/etc/kafka/secrets/kafka-controller-0.jks:ro
       - ./certs/kafka-controller-0-truststore.jks:/etc/kafka/secrets/kafka-controller-0-truststore.jks:ro
       - kafka-data-controller-0:/var/lib/kafka/data
       - ./kraft-controller.properties:/etc/kafka/kraft-server.properties
@@ -60,7 +54,6 @@ services:
       restart_policy:
         condition: on-failure
 
-  # --- Kafka Broker 0 ---
   kafka-broker-0:
     image: confluentinc/cp-kafka:7.9.0
     hostname: kafka-broker-0
@@ -68,50 +61,50 @@ services:
     # networks:
     #   - kafka_overlay_net
     ports:
-      - '9092:9092' # Client listener port
-      # Internal broker listener (no host port mapping needed unless external access for inter-broker)
-      # - '9091:9091'
+      - '9092:9092'
     environment:
       CLUSTER_ID: Rv_mOiSXQMSkcOpL_jZ01Q
       KAFKA_PROCESS_ROLES: broker
       KAFKA_NODE_ID: 2001
-      # Adjusted for a single controller setup
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1001@kafka-controller-0:9093
       KAFKA_LISTENERS: CLIENT://0.0.0.0:9092,BROKER://0.0.0.0:9091
-      KAFKA_ADVERTISED_LISTENERS: CLIENT://kafka-broker-0:9092,BROKER://kafka-broker-0:9091,CONTROLLER://kafka-controller-0:9093
+      KAFKA_ADVERTISED_LISTENERS: >-
+        CLIENT://kafka-broker-0:9092,BROKER://kafka-broker-0:9091
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:SASL_SSL,BROKER:SSL,CONTROLLER:SSL
       KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER 
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
 
       KAFKA_LISTENER_NAME_CLIENT_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
       KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
-      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
-      KAFKA_BROKER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
-      KAFKA_CONTROLLER_LISTENER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "" # https
+      KAFKA_BROKER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "" #dont need Double check if you have this specific override for BROKER listener
+      KAFKA_CONTROLLER_LISTENER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "" #dont need
 
-      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-keystore.jks
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0.jks
       KAFKA_SSL_KEYSTORE_PASSWORD: confluent
       KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-truststore.jks
       KAFKA_SSL_TRUSTSTORE_PASSWORD: confluent
 
       KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: required
-      KAFKA_LISTENER_NAME_CONTROLLER_SSL_CLIENT_AUTH: required # Ensure controller listener also requires client auth
+      KAFKA_LISTENER_NAME_CONTROLLER_SSL_CLIENT_AUTH: required
 
       KAFKA_LOG_DIRS: /var/lib/kafka/data/broker-data
       KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
-      # KAFKA_CLIENT_USERS: "ninja"
-      # KAFKA_SASL_SCRAM_SHA_512_MECHANISM_AUTH_USERS: "ninja"
-      # # Corrected the typo for setting the 'ninja' user's password
-      # KAFKA_SASL_SCRAM_SHA_512_MECHANISM_AUTH_USERNAME_NINJA_PASSWORD: "hi"
+      # KAFKA_SASL_JAAS_CONFIG: |
+      #   org.apache.kafka.common.security.scram.ScramLoginModule required;
+      KAFKA_CLIENT_USERS: "ninja" # Define your SCRAM users here, comma-separated if more
+      KAFKA_SASL_SCRAM_SHA_512_MECHANISM_AUTH_USERS: "ninja" # Specify users for this mechanism
+      KAFKA_SASL_SCRAM_SHA_512_MECHANISM_AUTH_USERNAME_CONNECT_USER_PASSWORD: "hi" # Set the password for 'connect_user'
       KAFKA_LISTENER_NAME_CLIENT_SCRAM_SHA_512_JAAS_CONFIG: |
         org.apache.kafka.common.security.scram.ScramLoginModule required;
     volumes:
-      # Updated volume paths to match script's generated filenames
-      - ./certs/kafka-broker-0-keystore.jks:/etc/kafka/secrets/kafka-broker-0-keystore.jks:ro
-      - ./certs/kafka-broker-0-truststore.jks:/etc/kafka/secrets/kafka-broker-0-truststore.jks:ro
+      - ./certs/kafka-broker-0.jks:/etc/kafka/secrets/kafka-broker-0.jks:ro
+      - >-
+        ./certs/kafka-broker-0-truststore.jks:/etc/kafka/secrets/kafka-broker-0-truststore.jks:ro
       - kafka-data-broker-0:/var/lib/kafka/data
-      - ./kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
-      - ./client.properties:/etc/kafka/client.properties:ro # This file seems out of place for a broker, typically for client apps
+      - ./kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro  # Add this line
+      - ./client.properties:/etc/kafka/client.properties:ro # <-- ADD THIS LINE
+      - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro # <-- ADD THIS LINE if client-truststore is used
     deploy:
       # mode: replicated
       # replicas: 1
@@ -121,7 +114,6 @@ services:
       restart_policy:
         condition: on-failure
 
-  # --- Kafka Connect ---
   kafka-connect:
     image: confluentinc/cp-kafka-connect:7.9.0
     hostname: kafka-connect
@@ -129,7 +121,7 @@ services:
     ports:
       - '8083:8083'
     environment:
-      CONNECT_BOOTSTRAP_SERVERS: kafka-broker-0:9092 # Adjust if using a different broker listener name/port
+      CONNECT_BOOTSTRAP_SERVERS: kafka-broker-0:9092
       CONNECT_GROUP_ID: connect-cluster-group
       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
       CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
@@ -143,7 +135,7 @@ services:
       KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka-connect-jaas.conf"
       CONNECT_SECURITY_PROTOCOL: SASL_SSL
       CONNECT_SASL_MECHANISM: SCRAM-SHA-512
-      CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks # Correctly references the client's truststore
+      CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
       CONNECT_SSL_TRUSTSTORE_PASSWORD: confluent
       CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
       # Consumer configurations
@@ -152,21 +144,20 @@ services:
       # CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
       # CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: confluent
       # CONNECT_CONSUMER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
-
-      # Producer configurations
+      
+      # Producer configurations  
       # CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
       # CONNECT_PRODUCER_SASL_MECHANISM: SCRAM-SHA-512
       # CONNECT_PRODUCER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
       # CONNECT_PRODUCER_SSL_TRUSTSTORE_PASSWORD: confluent
       # CONNECT_PRODUCER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
     volumes:
-      # Correctly points to the client's truststore generated by the script
       - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro
       - ./kafka-connect-jaas.conf:/etc/kafka/kafka-connect-jaas.conf:ro
       - kafka-connect-data:/var/lib/kafka/connect-data
     deploy:
       # mode: replicated
-      # replicas: 1
+      # replicas: 1 
       # placement:
       #   constraints:
       #     - node.role == worker
