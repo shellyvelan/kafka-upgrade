@@ -38,7 +38,7 @@ services:
       KAFKA_SSL_KEYSTORE_PASSWORD: confluent
       KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-truststore.jks
       KAFKA_SSL_TRUSTSTORE_PASSWORD: confluent
-      
+
       KAFKA_LOG_DIRS: /var/lib/kafka/data/controller-data
     volumes:
       - ./certs/kafka-controller-0.jks:/etc/kafka/secrets/kafka-controller-0.jks:ro
@@ -156,5 +156,11 @@ services:
       - ./kafka-connect-jaas.conf:/etc/kafka/kafka-connect-jaas.conf:ro
       - kafka-connect-data:/var/lib/kafka/connect-data
     deploy:
+      # mode: replicated
+      # replicas: 1 
+      # placement:
+      #   constraints:
+      #     - node.role == worker
+      #     - node.hostname == <hostname_of_node_for_connect> # <<< REPLACE THIS
       restart_policy:
         condition: on-failure
