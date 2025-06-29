@@ -28,8 +28,8 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1001@kafka-controller-0:9093
       KAFKA_LISTENERS: CONTROLLER://kafka-controller-0:9093
 
-      # KAFKA_SASL_SCRAM_SHA_512_MECHANISM_AUTH_USERS: ninja
-      # KAFKA_SASL_SCRAM_SHA_512_MECHANISM_AUTH_USERNAME_NINJA_PASSWORD: hi
+      KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+      KAFKA_SUPER_USERS: "User:CN=kafka-controller-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US;User:CN=kafka-broker-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US" # Add any other broker principals if multiple
 
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
@@ -49,6 +49,10 @@ services:
       - ./kraft-controller.properties:/etc/kafka/kraft-server.properties
       - ./kafka-configs-cli.properties:/etc/kafka/kafka-configs-cli.properties:ro
       - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro 
+      - ./kafka-acls-admin-cli.properties:/etc/kafka/kafka-acls-admin-cli.properties 
+
+      - ./certs/kafka-admin-client-keystore.jks:/etc/kafka/secrets/kafka-admin-client-keystore.jks:ro
+      - ./certs/kafka-admin-client-truststore.jks:/etc/kafka/secrets/kafka-admin-client-truststore.jks:ro
     deploy:
       # mode: replicated
       # replicas: 1
@@ -89,6 +93,9 @@ services:
       KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: required
       KAFKA_LISTENER_NAME_CONTROLLER_SSL_CLIENT_AUTH: required 
 
+      KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+      KAFKA_SUPER_USERS: "User:CN=kafka-controller-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US;User:CN=kafka-broker-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US" # Add any other broker principals if multiple
+      
       KAFKA_LOG_DIRS: /var/lib/kafka/data/broker-data
       KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
       KAFKA_LISTENER_NAME_CLIENT_SCRAM_SHA_512_JAAS_CONFIG: |
@@ -98,6 +105,8 @@ services:
       - ./certs/kafka-broker-0-truststore.jks:/etc/kafka/secrets/kafka-broker-0-truststore.jks:ro
       - kafka-data-broker-0:/var/lib/kafka/data
       - ./kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
+      # - ./kafka-configs-cli.properties:/etc/kafka/kafka-configs-cli.properties:ro #added? for kafka-config.sh
+      # - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro #added? for kafka-config.sh
     deploy:
       # mode: replicated
       # replicas: 1
@@ -131,7 +140,7 @@ services:
       CONNECT_SASL_MECHANISM: SCRAM-SHA-512
       CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks 
       CONNECT_SSL_TRUSTSTORE_PASSWORD: confluent
-      CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+      CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
       # Consumer configurations
       CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_SSL

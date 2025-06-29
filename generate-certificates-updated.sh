@@ -116,6 +116,7 @@ generate_component_certs "server" "kafka-broker-1" "kafka-broker-1"
 generate_component_certs "server" "kafka-broker-2" "kafka-broker-2"
 
 generate_component_certs "client" "kafka-connect" "client"
+generate_component_certs "consumer" "kafka-admin-client" "kafka-admin-client"
 
 # can also add calls for Kafka Connect, Schema Registry, Control Center, etc.
 # generate_component_certs "server" "connect.example.com" "kafka.connect"

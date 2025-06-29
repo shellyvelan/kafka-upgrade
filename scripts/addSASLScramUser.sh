@@ -1,8 +1,0 @@
-docker exec -it kafka-controller-0 kafka-storage format \                           
-  --config /etc/kafka/kraft/server.properties \
-  --cluster-id Rv_mOiSXQMSkcOpL_jZ01Q \
-  --add-scram 'SCRAM-SHA-512=[name=ninja,password=hi]' \
-  --ignore-formatted
-
-# docker exec -it kafka-controller-0 bash -c "kafka-storage format --config /etc/kafka/kraft/server.properties --cluster-id Rv_mOiSXQMSkcOpL_jZ01Q --add-scram 'SCRAM-SHA-512=[name=ninja,password=hi]' --ignore-formatted"
-# /bin/kafka-configs --bootstrap-server kafka-broker-0:9092 --describe --entity-type users --entity-name ninja --command-config /etc/kafka/kafka-configs-cli.properties
