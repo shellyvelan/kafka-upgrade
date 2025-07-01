@@ -45,7 +45,7 @@ docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER"
   --command-config "$COMMAND_CONFIG" \
   --add --allow-principal "User:$USERNAME" \
   --operation Read \
-  --group connect-cluster
+  --group Rv_mOiSXQMSkcOpL_jZ01Q
 
 echo "---------------------------------------------------"
 echo "Finished acls script :)"
