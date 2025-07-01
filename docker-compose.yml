@@ -29,7 +29,7 @@ services:
       KAFKA_LISTENERS: CONTROLLER://kafka-controller-0:9093
 
       KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
-      KAFKA_SUPER_USERS: "User:admin;User:CN=kafka-controller-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US;User:CN=kafka-broker-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US"
+      KAFKA_SUPER_USERS: "User:${file:/etc/kafka/secrets/admin-credentials.properties:admin.username};User:CN=kafka-controller-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US;User:CN=kafka-broker-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US"
 
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
@@ -37,22 +37,26 @@ services:
 
       KAFKA_SSL_CLIENT_AUTH: required
       KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-keystore.jks
-      KAFKA_SSL_KEYSTORE_PASSWORD: confluent
+      KAFKA_SSL_KEYSTORE_PASSWORD: "${file:/etc/kafka/secrets/ssl-passwords.properties:kafka.keystore.password}"
       KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-truststore.jks
-      KAFKA_SSL_TRUSTSTORE_PASSWORD: confluent
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: "${file:/etc/kafka/secrets/ssl-passwords.properties:kafka.truststore.password}"
 
       KAFKA_LOG_DIRS: /var/lib/kafka/data/controller-data
 
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     volumes:
+      - kafka-data-controller-0:/var/lib/kafka/data
+      
       - ./certs/kafka-controller-0-keystore.jks:/etc/kafka/secrets/kafka-controller-0-keystore.jks:ro
       - ./certs/kafka-controller-0-truststore.jks:/etc/kafka/secrets/kafka-controller-0-truststore.jks:ro
-      - kafka-data-controller-0:/var/lib/kafka/data
-      - ./kraft-controller.properties:/etc/kafka/kraft-server.properties
-      - ./kafka-configs-cli.properties:/etc/kafka/kafka-configs-cli.properties:ro
       - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro 
-      - ./kafka-acls-admin-cli.properties:/etc/kafka/kafka-acls-admin-cli.properties 
+      
+      - ./configs/kraft-controller.properties:/etc/kafka/kraft-server.properties
+      - ./configs/kafka-configs-cli.properties:/etc/kafka/kafka-configs-cli.properties:ro
+      - ./configs/kafka-acls-admin-cli.properties:/etc/kafka/kafka-acls-admin-cli.properties
+
+      - ./secrets:/etc/kafka/secrets:ro
     deploy:
       # mode: replicated
       # replicas: 1
@@ -88,15 +92,15 @@ services:
       KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
       KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-keystore.jks
-      KAFKA_SSL_KEYSTORE_PASSWORD: confluent
+      KAFKA_SSL_KEYSTORE_PASSWORD: "${file:/etc/kafka/secrets/ssl-passwords.properties:kafka.keystore.password}"
       KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-truststore.jks
-      KAFKA_SSL_TRUSTSTORE_PASSWORD: confluent
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: "${file:/etc/kafka/secrets/ssl-passwords.properties:kafka.truststore.password}"
 
       KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: required
       KAFKA_LISTENER_NAME_CONTROLLER_SSL_CLIENT_AUTH: required 
 
       KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
-      KAFKA_SUPER_USERS: "User:admin;User:CN=kafka-controller-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US;User:CN=kafka-broker-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US"
+      KAFKA_SUPER_USERS: "User:${file:/etc/kafka/secrets/admin-credentials.properties:admin.username};User:CN=kafka-controller-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US;User:CN=kafka-broker-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US"
       
       KAFKA_LOG_DIRS: /var/lib/kafka/data/broker-data
       KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
@@ -106,11 +110,15 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     volumes:
+      - kafka-data-broker-0:/var/lib/kafka/data
+
       - ./certs/kafka-broker-0-keystore.jks:/etc/kafka/secrets/kafka-broker-0-keystore.jks:ro
       - ./certs/kafka-broker-0-truststore.jks:/etc/kafka/secrets/kafka-broker-0-truststore.jks:ro
-      - kafka-data-broker-0:/var/lib/kafka/data
-      - ./kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
-      - ./kafka-acls-admin-cli.properties:/etc/kafka/kafka-acls-admin-cli.properties:ro
+
+      - ./configs/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
+      - ./configs/kafka-acls-admin-cli.properties:/etc/kafka/kafka-acls-admin-cli.properties:ro
+
+      - ./secrets:/etc/kafka/secrets:ro
     deploy:
       # mode: replicated
       # replicas: 1
@@ -146,21 +154,21 @@ services:
        CONNECT_SECURITY_PROTOCOL: SASL_SSL
        CONNECT_SASL_MECHANISM: SCRAM-SHA-512
        CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
-       CONNECT_SSL_TRUSTSTORE_PASSWORD: confluent
+       CONNECT_SSL_TRUSTSTORE_PASSWORD: "${file:/etc/kafka/secrets/ssl-passwords.properties:connect.truststore.password}"
        CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
        # Consumer configurations (for internal topics and source connectors)
        CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_SSL
        CONNECT_CONSUMER_SASL_MECHANISM: SCRAM-SHA-512
        CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
-       CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: confluent
+       CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: "${file:/etc/kafka/secrets/ssl-passwords.properties:connect.truststore.password}"
        CONNECT_CONSUMER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
        # Producer configurations (for internal topics and sink connectors)
        CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
        CONNECT_PRODUCER_SASL_MECHANISM: SCRAM-SHA-512
        CONNECT_PRODUCER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
-       CONNECT_PRODUCER_SSL_TRUSTSTORE_PASSWORD: confluent
+       CONNECT_PRODUCER_SSL_TRUSTSTORE_PASSWORD: "${file:/etc/kafka/secrets/ssl-passwords.properties:connect.truststore.password}"
        CONNECT_PRODUCER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
        # Internal Kafka Connect Topic Replication Factors (set to 1 for a single broker)
@@ -176,27 +184,23 @@ services:
        CONNECT_REST_AUTHENTICATION_SASL_MECHANISM: SCRAM-SHA-512 # SCRAM-SHA-512 mechanism
        CONNECT_REST_SASL_JAAS_CONFIG: | # JAAS configuration for the REST API's authentication
          org.apache.kafka.common.security.scram.ScramLoginModule required
-         username="ninja"
-         password="hi";
-       # NOTE: In production, store credentials securely (e.g., Docker secrets, Vault, etc.),
-       # do NOT hardcode them in your docker-compose.yaml.
+         username="${file:/etc/kafka/secrets/connect-credentials.properties:rest.username}"
+         password="${file:/etc/kafka/secrets/connect-credentials.properties:rest.password}";
 
        # SSL/TLS configuration for the REST API (server-side encryption)
        CONNECT_REST_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-connect-rest-keystore.jks # Path to Connect REST server's keystore
-       CONNECT_REST_SSL_KEYSTORE_PASSWORD: confluent # Password for the keystore
-       # No CONNECT_REST_SSL_TRUSTSTORE_LOCATION or CONNECT_REST_SSL_CLIENT_AUTH needed for non-mTLS client authentication
+       CONNECT_REST_SSL_KEYSTORE_PASSWORD: "${file:/etc/kafka/secrets/ssl-passwords.properties:connect.rest.keystore.password}"
 
      volumes:
-       # Volumes for Kafka Broker Communication
-       - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro # Truststore for communicating with brokers
-       - ./kafka-connect-jaas.conf:/etc/kafka/kafka-connect-jaas.conf:ro # JAAS for broker authentication
-
-       # Volume for Connect's internal data
        - kafka-connect-data:/var/lib/kafka/connect-data
 
-       # Volumes for Kafka Connect REST API SSL
+       - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro # Truststore for communicating with brokers
        - ./certs/kafka-connect-rest-keystore.jks:/etc/kafka/secrets/kafka-connect-rest-keystore.jks:ro # Keystore for REST server SSL
 
+       - ./configs/kafka-connect-jaas.conf:/etc/kafka/kafka-connect-jaas.conf:ro # JAAS for broker authentication
+
+       - ./secrets/connect-credentials.properties:/etc/kafka/secrets/connect-credentials.properties:ro # Credentials for Connect REST API
+       - ./secrets/ssl-passwords.properties:/etc/kafka/secrets/ssl-passwords.properties:ro # Passwords for SSL keystores/truststores relevant to connect
      deploy:
        # mode: replicated
        # replicas: 1
@@ -206,7 +210,6 @@ services:
        #     - node.hostname == <hostname_of_node_for_connect> # <<< REPLACE THIS
        restart_policy:
          condition: on-failure
-     # Add depends_on and healthcheck for better startup order if needed, as discussed previously
      # depends_on:
      #   kafka-broker-0:
      #     condition: service_healthy
