@@ -6,7 +6,7 @@ BOOTSTRAP_SERVER="kafka-broker-0:9092" # Internal Docker network hostname (broke
 USERNAME="ninja" # Existing user for Kafka Connect and other admin tasks
 
 # AKHQ Specific Variables
-AKHQ_USERNAME="akhq_client_user" # The username AKHQ will use to connect to Kafka
+AKHQ_USERNAME="akhq-user" # The username AKHQ will use to connect to Kafka
 AKHQ_CONSUMER_GROUP="Rv_mOiSXQMSkcOpL_jZ01Q"
 
 # The container to execute the commands in
@@ -52,47 +52,74 @@ docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER"
   --operation Read --group Rv_mOiSXQMSkcOpL_jZ01Q # Assuming this is your Connect group
 
 echo "---------------------------------------------------"
+echo "Grant MongoDB Connector topic access for $USERNAME"
+
+docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER" \
+  --command-config "$COMMAND_CONFIG" \
+  --add --allow-principal "User:$USERNAME" \
+  --operation Write --operation Describe \
+  --topic "mongo-.testdb.testcollection"
+
+
+echo "---------------------------------------------------"
 echo "Grant AKHQ specific permissions (for $AKHQ_USERNAME)"
 
-echo "Grant Cluster-wide Describe permission for AKHQ"
+echo "Granting Cluster-wide Describe permission"
 docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER" \
   --command-config "$COMMAND_CONFIG" \
   --add --allow-principal "User:$AKHQ_USERNAME" \
   --operation Describe --cluster
 
-echo "Grant Read and Describe on all topics for AKHQ"
-docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER" \
-  --command-config "$COMMAND_CONFIG" \
-  --add --allow-principal "User:$AKHQ_USERNAME" \
-  --operation Read --operation Describe \
-  --topic '*'
-
-echo "Grant Read and Describe on all consumer groups for AKHQ"
-# AKHQ needs to read all consumer groups to list them
-docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER" \
-  --command-config "$COMMAND_CONFIG" \
-  --add --allow-principal "User:$AKHQ_USERNAME" \
-  --operation Read --operation Describe \
-  --group '*'
-
+echo "Granting Cluster-wide DescribeConfigs permission"
 docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER" \
   --command-config "$COMMAND_CONFIG" \
   --add --allow-principal "User:$AKHQ_USERNAME" \
   --operation DescribeConfigs --cluster
 
+echo "Granting ACLS describe permission"
+docker exec kafka-controller-0 kafka-acls \
+  --bootstrap-server kafka-broker-0:9092 \
+  --command-config /etc/kafka/kafka-acls-admin-cli.properties \
+  --add --allow-principal "User:akhq-user" \
+  --operation Describe \
+  --cluster
+  
+# === Topic permissions ===
+echo "Granting Read, Describe, DescribeConfigs on all topics"
 docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER" \
   --command-config "$COMMAND_CONFIG" \
   --add --allow-principal "User:$AKHQ_USERNAME" \
-  --operation Read --operation Describe \
+  --operation Read \
+  --operation Describe \
+  --operation DescribeConfigs \
+  --topic '*'
+
+# Optional: Internal topics like __consumer_offsets or __transaction_state
+echo "Granting access to internal topics"
+docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER" \
+  --command-config "$COMMAND_CONFIG" \
+  --add --allow-principal "User:$AKHQ_USERNAME" \
+  --operation Read \
+  --operation Describe \
   --topic '__*'
 
+echo "Granting access to Kafka Connect topics (if used)"
 docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER" \
   --command-config "$COMMAND_CONFIG" \
   --add --allow-principal "User:$AKHQ_USERNAME" \
-  --operation Read --operation Describe \
+  --operation Read \
+  --operation Describe \
   --topic 'connect-*'
-# If AKHQ uses its own consumer group for internal operations (e.g., offset management for the UI itself)
-# You might need to grant it write access to that specific grou
+
+# === Consumer group permissions ===
+echo "Granting Read and Describe on all consumer groups"
+docker exec "$KAFKA_CONTAINER" kafka-acls --bootstrap-server "$BOOTSTRAP_SERVER" \
+  --command-config "$COMMAND_CONFIG" \
+  --add --allow-principal "User:$AKHQ_USERNAME" \
+  --operation Read \
+  --operation Describe \
+  --group '*'
+
 
 echo "---------------------------------------------------"
 echo "Finished acls script :)"

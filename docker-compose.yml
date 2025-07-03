@@ -5,235 +5,266 @@
 #     attachable: true
 
 volumes:
-  kafka-data-controller-0:
-    driver: local
-  kafka-data-broker-0:
-    driver: local
-  kafka-connect-data:
-    driver: local
+    kafka-data-controller-0:
+        driver: local
+    kafka-data-broker-0:
+        driver: local
+    kafka-connect-data:
+        driver: local
 
 services:
-  kafka-controller-0:
-    image: confluentinc/cp-kafka:7.9.0
-    hostname: kafka-controller-0
-    container_name: kafka-controller-0
-    # networks:
-    #   - kafka_overlay_net
-    ports:
-      - '9093:9093'
-    environment:
-      CLUSTER_ID: Rv_mOiSXQMSkcOpL_jZ01Q
-      KAFKA_PROCESS_ROLES: controller
-      KAFKA_NODE_ID: 1001
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1001@kafka-controller-0:9093
-      KAFKA_LISTENERS: CONTROLLER://kafka-controller-0:9093
+    mongodb:
+        image: mongo
+        restart: always
+        command: --replSet rs0 --bind_ip_all
+        ports:
+            - "27017:27017"
 
-      KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
-      KAFKA_SUPER_USERS: "User:admin;User:CN=kafka-controller-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US;User:CN=kafka-broker-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US"
+    mongosetup:
+        image: mongo
+        depends_on:
+            - mongodb
+        restart: on-failure
+        command: >
+            mongosh --host mongodb:27017 --eval "rs.initiate({ _id: 'rs0', members: [{ _id: 1, host: 'mongodb:27017' }] })"
 
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+    kafka-controller-0:
+        image: confluentinc/cp-kafka:7.9.0
+        hostname: kafka-controller-0
+        container_name: kafka-controller-0
+        # networks:
+        #   - kafka_overlay_net
+        ports:
+            - "9093:9093"
+        environment:
+            CLUSTER_ID: Rv_mOiSXQMSkcOpL_jZ01Q
+            KAFKA_PROCESS_ROLES: controller
+            KAFKA_NODE_ID: 1001
+            KAFKA_CONTROLLER_QUORUM_VOTERS: 1001@kafka-controller-0:9093
+            KAFKA_LISTENERS: CONTROLLER://kafka-controller-0:9093
 
-      KAFKA_SSL_CLIENT_AUTH: required
-      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-keystore.jks
-      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-truststore.jks
-      KAFKA_SSL_KEYSTORE_PASSWORD: "${KAFKA_KEYSTORE_PASSWORD}"
-      KAFKA_SSL_TRUSTSTORE_PASSWORD: "${KAFKA_TRUSTSTORE_PASSWORD}"
+            KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+            KAFKA_SUPER_USERS: "User:admin;User:CN=kafka-controller-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US;User:CN=kafka-broker-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US"
 
-      KAFKA_LOG_DIRS: /var/lib/kafka/data/controller-data
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL
+            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+            KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
-      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    volumes:
-      - kafka-data-controller-0:/var/lib/kafka/data
-      
-      - ./certs/kafka-controller-0-keystore.jks:/etc/kafka/secrets/kafka-controller-0-keystore.jks:ro
-      - ./certs/kafka-controller-0-truststore.jks:/etc/kafka/secrets/kafka-controller-0-truststore.jks:ro
-      - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro 
-      
-      - ./configs/kraft-controller.properties:/etc/kafka/kraft-server.properties
-      - ./configs/kafka-configs-cli.properties:/etc/kafka/kafka-configs-cli.properties:ro
-      - ./configs/kafka-acls-admin-cli.properties:/etc/kafka/kafka-acls-admin-cli.properties
+            KAFKA_SSL_CLIENT_AUTH: required
+            KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-keystore.jks
+            KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-truststore.jks
+            KAFKA_SSL_KEYSTORE_PASSWORD: "${KAFKA_KEYSTORE_PASSWORD}"
+            KAFKA_SSL_TRUSTSTORE_PASSWORD: "${KAFKA_TRUSTSTORE_PASSWORD}"
 
-      # - ./secrets:/etc/kafka/secrets:ro
-    deploy:
-      # mode: replicated
-      # replicas: 1
-      # placement:
-      #   constraints:
-      #     - node.role == worker
-      restart_policy:
-        condition: on-failure
+            KAFKA_LOG_DIRS: /var/lib/kafka/data/controller-data
 
-  kafka-broker-0:
-    image: confluentinc/cp-kafka:7.9.0
-    hostname: kafka-broker-0
-    container_name: kafka-broker-0
-    depends_on: 
-      - kafka-controller-0
-    # networks:
-    #   - kafka_overlay_net
-    ports:
-      - '9092:9092' 
-    environment:
-      CLUSTER_ID: Rv_mOiSXQMSkcOpL_jZ01Q
-      KAFKA_PROCESS_ROLES: broker
-      KAFKA_NODE_ID: 2001
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1001@kafka-controller-0:9093
-      KAFKA_LISTENERS: CLIENT://0.0.0.0:9092,BROKER://0.0.0.0:9091
-      KAFKA_ADVERTISED_LISTENERS: CLIENT://kafka-broker-0:9092,BROKER://kafka-broker-0:9091,CONTROLLER://kafka-controller-0:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:SASL_SSL,BROKER:SSL,CONTROLLER:SSL
-      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER 
+            KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
-      KAFKA_LISTENER_NAME_CLIENT_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
-      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
-      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+            KAFKA_HEAP_OPTS: "-Xms512m -Xmx1024m"
 
-      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-keystore.jks
-      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-truststore.jks
-      KAFKA_SSL_KEYSTORE_PASSWORD: "${KAFKA_KEYSTORE_PASSWORD}"
-      KAFKA_SSL_TRUSTSTORE_PASSWORD: "${KAFKA_TRUSTSTORE_PASSWORD}"
+        volumes:
+            - kafka-data-controller-0:/var/lib/kafka/data
 
-      KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: required
-      KAFKA_LISTENER_NAME_CONTROLLER_SSL_CLIENT_AUTH: required 
+            - ./certs/kafka-controller-0-keystore.jks:/etc/kafka/secrets/kafka-controller-0-keystore.jks:ro
+            - ./certs/kafka-controller-0-truststore.jks:/etc/kafka/secrets/kafka-controller-0-truststore.jks:ro
+            - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro
 
-      KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
-      KAFKA_SUPER_USERS: "User:admin;User:CN=kafka-controller-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US;User:CN=kafka-broker-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US"
-      
-      KAFKA_LOG_DIRS: /var/lib/kafka/data/broker-data
-      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
-      KAFKA_LISTENER_NAME_CLIENT_SCRAM_SHA_512_JAAS_CONFIG: |
-        org.apache.kafka.common.security.scram.ScramLoginModule required;
+            - ./configs/kraft-controller.properties:/etc/kafka/kraft-server.properties
+            - ./configs/kafka-configs-cli.properties:/etc/kafka/kafka-configs-cli.properties:ro
+            - ./configs/kafka-acls-admin-cli.properties:/etc/kafka/kafka-acls-admin-cli.properties
 
-      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    volumes:
-      - kafka-data-broker-0:/var/lib/kafka/data
+            # - ./secrets:/etc/kafka/secrets:ro
+        deploy:
+            # mode: replicated
+            # replicas: 1
+            # placement:
+            #   constraints:
+            #     - node.role == worker
+            restart_policy:
+                condition: on-failure
 
-      - ./certs/kafka-broker-0-keystore.jks:/etc/kafka/secrets/kafka-broker-0-keystore.jks:ro
-      - ./certs/kafka-broker-0-truststore.jks:/etc/kafka/secrets/kafka-broker-0-truststore.jks:ro
+    kafka-broker-0:
+        image: confluentinc/cp-kafka:7.9.0
+        hostname: kafka-broker-0
+        container_name: kafka-broker-0
+        depends_on:
+            - kafka-controller-0
+        # networks:
+        #   - kafka_overlay_net
+        ports:
+            - "9092:9092"
+        environment:
+            CLUSTER_ID: Rv_mOiSXQMSkcOpL_jZ01Q
+            KAFKA_PROCESS_ROLES: broker
+            KAFKA_NODE_ID: 2001
+            KAFKA_CONTROLLER_QUORUM_VOTERS: 1001@kafka-controller-0:9093
+            KAFKA_LISTENERS: CLIENT://0.0.0.0:9092,BROKER://0.0.0.0:9091
+            KAFKA_ADVERTISED_LISTENERS: CLIENT://kafka-broker-0:9092,BROKER://kafka-broker-0:9091,CONTROLLER://kafka-controller-0:9093
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:SASL_SSL,BROKER:SSL,CONTROLLER:SSL
+            KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
 
-      - ./configs/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
-      - ./configs/kafka-acls-admin-cli.properties:/etc/kafka/kafka-acls-admin-cli.properties:ro
+            KAFKA_LISTENER_NAME_CLIENT_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+            KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+            KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
-      # - ./secrets:/etc/kafka/secrets:ro
-    deploy:
-      # mode: replicated
-      # replicas: 1
-      # placement:
-      #   constraints:
-      #     - node.role == worker
-      restart_policy:
-        condition: on-failure
+            KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-keystore.jks
+            KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-truststore.jks
+            KAFKA_SSL_KEYSTORE_PASSWORD: "${KAFKA_KEYSTORE_PASSWORD}"
+            KAFKA_SSL_TRUSTSTORE_PASSWORD: "${KAFKA_TRUSTSTORE_PASSWORD}"
 
-  kafka-connect:
-     image: confluentinc/cp-kafka-connect:7.9.0
-     hostname: kafka-connect
-     container_name: kafka-connect
-     depends_on: 
-      - kafka-broker-0
-     ports:
-       - '8083:8083' 
-     environment:
-       # Kafka Broker Communication (SASL_SSL)
-       CONNECT_BOOTSTRAP_SERVERS: kafka-broker-0:9092
-       CONNECT_GROUP_ID: Rv_mOiSXQMSkcOpL_jZ01Q
-       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
-       CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
-       CONNECT_STATUS_STORAGE_TOPIC: connect-status
-       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-       CONNECT_INTERNAL_KEY_CONVERTER_SCHEMAS_ENABLE: 'false'
-       CONNECT_INTERNAL_VALUE_CONVERTER_SCHEMAS_ENABLE: 'false'
-       CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
-       CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
-       KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka-connect-jaas.conf"
+            KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: required
+            KAFKA_LISTENER_NAME_CONTROLLER_SSL_CLIENT_AUTH: required
 
-       CONNECT_SECURITY_PROTOCOL: SASL_SSL
-       CONNECT_SASL_MECHANISM: SCRAM-SHA-512
-       CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
-       CONNECT_SSL_TRUSTSTORE_PASSWORD: "${CONNECT_TRUSTSTORE_PASSWORD}"
-       CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+            KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+            KAFKA_SUPER_USERS: "User:admin;User:CN=kafka-controller-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US;User:CN=kafka-broker-0,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US"
 
-       # Consumer configurations (for internal topics and source connectors)
-       CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_SSL
-       CONNECT_CONSUMER_SASL_MECHANISM: SCRAM-SHA-512
-       CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
-       CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: "${CONNECT_TRUSTSTORE_PASSWORD}"
-       CONNECT_CONSUMER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+            KAFKA_LOG_DIRS: /var/lib/kafka/data/broker-data
+            KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+            KAFKA_LISTENER_NAME_CLIENT_SCRAM_SHA_512_JAAS_CONFIG: |
+                org.apache.kafka.common.security.scram.ScramLoginModule required;
 
-       # Producer configurations (for internal topics and sink connectors)
-       CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
-       CONNECT_PRODUCER_SASL_MECHANISM: SCRAM-SHA-512
-       CONNECT_PRODUCER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
-       CONNECT_PRODUCER_SSL_TRUSTSTORE_PASSWORD: "${CONNECT_TRUSTSTORE_PASSWORD}"
-       CONNECT_PRODUCER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+            KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
-       # Internal Kafka Connect Topic Replication Factors (set to 1 for a single broker)
-       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
-       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
-       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+            KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
 
-       # Kafka Connect REST API Security (SASL/SCRAM over SSL)
-       CONNECT_LISTENERS: https://0.0.0.0:8083    
-       CONNECT_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-connect-rest-keystore.jks
-       CONNECT_SSL_KEYSTORE_PASSWORD: "${CONNECT_REST_KEYSTORE_PASSWORD}"
-       CONNECT_REST_EXTENSION_CLASSES: org.apache.kafka.connect.rest.basic.auth.extension.BasicAuthSecurityRestExtension
-       CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE: FILE
-       CONNECT_BASIC_AUTH_FILE: /etc/kafka/secrets/connect-rest-credentials.properties
+            KAFKA_HEAP_OPTS: "-Xms512m -Xmx1024m"
+        volumes:
+            - kafka-data-broker-0:/var/lib/kafka/data
 
-     volumes:
-       - kafka-connect-data:/var/lib/kafka/connect-data
+            - ./certs/kafka-broker-0-keystore.jks:/etc/kafka/secrets/kafka-broker-0-keystore.jks:ro
+            - ./certs/kafka-broker-0-truststore.jks:/etc/kafka/secrets/kafka-broker-0-truststore.jks:ro
 
-       - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro # Truststore for communicating with brokers
-       - ./certs/kafka-connect-rest-keystore.jks:/etc/kafka/secrets/kafka-connect-rest-keystore.jks:ro # Keystore for REST server SSL
+            - ./configs/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
+            - ./configs/kafka-acls-admin-cli.properties:/etc/kafka/kafka-acls-admin-cli.properties:ro
 
-       - ./configs/kafka-connect-jaas.conf:/etc/kafka/kafka-connect-jaas.conf:ro # JAAS for broker authentication
+            # - ./secrets:/etc/kafka/secrets:ro
+        deploy:
+            # mode: replicated
+            # replicas: 1
+            # placement:
+            #   constraints:
+            #     - node.role == worker
+            restart_policy:
+                condition: on-failure
 
-       - ./secrets/connect-rest-credentials.properties:/etc/kafka/secrets/connect-rest-credentials.properties:ro # Credentials for Connect REST API
-       - ./secrets/ssl-passwords.properties:/etc/kafka/secrets/ssl-passwords.properties:ro # Passwords for SSL keystores/truststores relevant to connect
-     deploy:
-       # mode: replicated
-       # replicas: 1
-       # placement:
-       #   constraints:
-       #     - node.role == worker
-       #     - node.hostname == <hostname_of_node_for_connect> # <<< REPLACE THIS
-       restart_policy:
-         condition: on-failure
+    kafka-connect:
+        image: my-kafka-connect-mongodb5
+        hostname: kafka-connect
+        container_name: kafka-connect
+        depends_on:
+            - kafka-broker-0
+        ports:
+            - "8083:8083"
+        environment:
+            # Kafka Broker Communication (SASL_SSL)
+            CONNECT_BOOTSTRAP_SERVERS: kafka-broker-0:9092
+            CONNECT_GROUP_ID: Rv_mOiSXQMSkcOpL_jZ01Q
+            CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+            CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+            CONNECT_STATUS_STORAGE_TOPIC: connect-status
+            CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+            CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+            CONNECT_INTERNAL_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+            CONNECT_INTERNAL_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+            CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+            CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+            KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka-connect-jaas.conf"
 
-  akhq:
-    image: tchiotludo/akhq:latest # You can specify a version, e.g., tchiotludo/akhq:0.25.0
-    hostname: akhq
-    container_name: akhq
-    ports:
-      - '8080:8080' # Port for the AKHQ UI
-    depends_on:
-      - kafka-broker-0 # AKHQ needs Kafka to be up
-      - kafka-connect # If you configure the connect section
-    environment:
-      # Ensure AKHQ reads its main configuration file
-      MICRONAUT_CONFIG_FILES: "/app/application.yml"
-      # This environment variable tells AKHQ to reload configs on changes (useful during dev)
-      # AKHQ_LOGGING_LEVEL_ROOT: DEBUG # Uncomment for more verbose logging
+            CONNECT_SECURITY_PROTOCOL: SASL_SSL
+            CONNECT_SASL_MECHANISM: SCRAM-SHA-512
+            CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
+            # CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-truststore.jks
+            CONNECT_SSL_TRUSTSTORE_PASSWORD: "${CONNECT_TRUSTSTORE_PASSWORD}"
+            CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
-    volumes:
-      # Mount the main AKHQ configuration file
-      - ./configs/akhq/application.yml:/app/application.yml
+            # Consumer configurations (for internal topics and source connectors)
+            CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_SSL
+            CONNECT_CONSUMER_SASL_MECHANISM: SCRAM-SHA-512
+            CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
+            CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: "${CONNECT_TRUSTSTORE_PASSWORD}"
+            CONNECT_CONSUMER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
-      # Mount the truststore for Kafka broker communication
-      - ./certs/client-truststore.jks:/etc/akhq/secrets/client-truststore.jks:ro
 
-      # Mount the secret files AKHQ needs
-      - ./secrets/akhq-credentials.properties:/etc/akhq/secrets/akhq-credentials.properties:ro
-      - ./secrets/connect-credentials.properties:/etc/akhq/secrets/connect-credentials.properties:ro # For Connect REST API authentication
-      - ./secrets/ssl-passwords.properties:/etc/akhq/secrets/ssl-passwords.properties:ro # For truststore password
 
-    deploy:
-      restart_policy:
-        condition: on-failure
-     # depends_on:
-     #   kafka-broker-0:
-     #     condition: service_healthy
+            # Producer configurations (for internal topics and sink connectors)
+            CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
+            CONNECT_PRODUCER_SASL_MECHANISM: SCRAM-SHA-512
+            CONNECT_PRODUCER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
+            CONNECT_PRODUCER_SSL_TRUSTSTORE_PASSWORD: "${CONNECT_TRUSTSTORE_PASSWORD}"
+            CONNECT_PRODUCER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+
+            # Internal Kafka Connect Topic Replication Factors (set to 1 for a single broker)
+            CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+            CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+            CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+
+            # Kafka Connect REST API Security (SASL/SCRAM over SSL)
+            CONNECT_LISTENERS: https://0.0.0.0:8083
+            CONNECT_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-connect-rest-keystore.jks
+            CONNECT_SSL_KEYSTORE_PASSWORD: "${CONNECT_REST_KEYSTORE_PASSWORD}"
+            CONNECT_REST_EXTENSION_CLASSES: org.apache.kafka.connect.rest.basic.auth.extension.BasicAuthSecurityRestExtension
+            CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE: FILE
+            CONNECT_BASIC_AUTH_FILE: /etc/kafka/secrets/connect-rest-credentials.properties
+
+            CONNECT_PLUGIN_PATH: "/usr/share/confluent-hub-components"
+            # CONNECT_PLUGIN_CLASSLOADER_EXCLUDE_PATTERN: "com.mongodb.**"
+            # CONNECT_PLUGIN_ISOLATION: "false"
+
+        volumes:
+            - kafka-connect-data:/var/lib/kafka/connect-data
+
+            - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro # Truststore for communicating with brokers
+            # - ./certs/kafka-broker-0-truststore.jks:/etc/kafka/secrets/kafka-broker-0-truststore.jks:ro
+
+            - ./certs/kafka-connect-rest-keystore.jks:/etc/kafka/secrets/kafka-connect-rest-keystore.jks:ro # Keystore for REST server SSL
+
+            - ./configs/kafka-connect-jaas.conf:/etc/kafka/kafka-connect-jaas.conf:ro # JAAS for broker authentication
+
+            - ./secrets/connect-rest-credentials.properties:/etc/kafka/secrets/connect-rest-credentials.properties:ro # Credentials for Connect REST API
+            - ./secrets/ssl-passwords.properties:/etc/kafka/secrets/ssl-passwords.properties:ro # Passwords for SSL keystores/truststores relevant to connect
+        deploy:
+            # mode: replicated
+            # replicas: 1
+            # placement:
+            #   constraints:
+            #     - node.role == worker
+            #     - node.hostname == <hostname_of_node_for_connect> # <<< REPLACE THIS
+            restart_policy:
+                condition: on-failure
+
+    akhq:
+        image: tchiotludo/akhq:latest # You can specify a version, e.g., tchiotludo/akhq:0.25.0
+        hostname: akhq
+        container_name: akhq
+        ports:
+            - "8080:8080" # Port for the AKHQ UI
+        depends_on:
+            - kafka-broker-0 # AKHQ needs Kafka to be up
+            - kafka-connect # If you configure the connect section
+        environment:
+            # Ensure AKHQ reads its main configuration file
+            MICRONAUT_CONFIG_FILES: "/app/application.yml"
+            # This environment variable tells AKHQ to reload configs on changes (useful during dev)
+            # AKHQ_LOGGING_LEVEL_ROOT: DEBUG # Uncomment for more verbose logging
+
+        volumes:
+            # Mount the main AKHQ configuration file
+            - ./configs/akhq/application.yml:/app/application.yml
+
+            # Mount the truststore for Kafka broker communication
+            - ./certs/client-truststore.jks:/etc/akhq/secrets/client-truststore.jks:ro
+
+            # Mount the secret files AKHQ needs
+            - ./secrets/akhq-credentials.properties:/etc/akhq/secrets/akhq-credentials.properties:ro
+            - ./secrets/connect-credentials.properties:/etc/akhq/secrets/connect-credentials.properties:ro # For Connect REST API authentication
+            - ./secrets/ssl-passwords.properties:/etc/akhq/secrets/ssl-passwords.properties:ro # For truststore password
+
+        deploy:
+            restart_policy:
+                condition: on-failure
+            # depends_on:
+            #   kafka-broker-0:
+            #     condition: service_healthy

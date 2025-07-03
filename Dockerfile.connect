@@ -1,0 +1,15 @@
+FROM confluentinc/cp-kafka-connect:7.9.0
+
+# Install the official MongoDB Kafka Connector (source + sink)
+ENV CONNECT_PLUGIN_PATH="/usr/share/java,/usr/share/confluent-hub-components"
+
+RUN confluent-hub install --no-prompt mongodb/kafka-connect-mongodb:latest
+
+
+# Fix permissions (optional but avoids issues with mounted volumes)
+# USER root
+# RUN chown -R appuser:appuser /usr/share/confluent-hub-components
+
+# # Switch back to the default user
+# USER appuser
+

@@ -1,0 +1,16 @@
+{
+  "name": "mongo-source-connector",
+  "config": {
+    "connector.class": "com.mongodb.kafka.connect.MongoSourceConnector",
+    "tasks.max": "1",
+    "connection.uri": "mongodb://mongodb:27017/?replicaSet=rs0",
+    "database": "testdb",
+    "collection": "testcollection",
+    "topic.prefix": "mongo-",
+    "output.format.value": "json",
+    "output.format.key": "json",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": false
+  }
+}
