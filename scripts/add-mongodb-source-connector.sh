@@ -1,0 +1,1 @@
+curl -k -X POST https://localhost:8083/connectors -u connect-admin:strong-password  -H "Content-Type: application/json"   --data @mongo-source.json

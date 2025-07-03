@@ -21,7 +21,7 @@ akhq:
           password="akhq-password";
         
         # SSL configuration for AKHQ to trust Kafka brokers
-        ssl.truststore.location: /etc/akhq/secrets/client-truststore.jks
+        ssl.truststore.location: /etc/akhq/secrets/truststore.jks
         ssl.truststore.password: "confluent" # Reusing connect's truststore password for simplicity
         ssl.endpoint.identification.algorithm: https # Required if your certificates use hostnames
 
@@ -33,7 +33,7 @@ akhq:
           basic-auth-password: "strong-password"
           # If Kafka Connect's REST API also requires client-side SSL (not just server-side)
           # then you'd also need:
-          ssl-trust-store: /etc/akhq/secrets/client-truststore.jks # AKHQ trusting Connect
+          ssl-trust-store: /etc/akhq/secrets/truststore.jks # AKHQ trusting Connect
           ssl-trust-store-password: "confluent"
           # If Connect requires client certificates from AKHQ (unlikely for basic auth), you'd also add:
           # ssl-key-store: /path/to/akhq/keystore.jks

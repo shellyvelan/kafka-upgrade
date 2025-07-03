@@ -26,10 +26,17 @@ openssl req -new -x509 -keyout ca.key -out ca.crt -days "${VALIDITY}" \
 
 echo "CA generated: ca.key, ca.crt in ./${CERTS_DIR}"
 
+# --- 2. Create a single truststore and import CA certificate ---
+echo ""
+echo "--- Step 2: Creating single truststore.jks with CA certificate ---"
+keytool -keystore truststore.jks -alias CARoot -importcert -file ca.crt \
+    -storepass "${STORE_PASSWORD}" -noprompt
+echo "Single truststore created: truststore.jks"
+
 # --- Function to Generate Component Certificates ---
 # Arguments:
 #   $1: Component type (e.g., "server", "client", "producer", "consumer").
-#       This determines if a keystore is needed (e.g., server, producer, consumer need keys).
+#       This determines if a keystore is needed (i.e., it needs its own key pair and signed certificate).
 #   $2: Component alias/Common Name (CN) for the certificate (e.g., "localhost", "broker1.example.com", "myclient").
 #       This should typically be the hostname for servers or a unique identifier for clients.
 #   $3: Base name for the JKS files (e.g., "kafka.server", "kafka.client").
@@ -45,23 +52,21 @@ generate_component_certs() {
     echo "--- Processing ${component_type} component: ${jks_basename} (alias: ${component_alias}) ---"
 
     local keystore_file="${jks_basename}-keystore.jks"
-    local truststore_file="${jks_basename}-truststore.jks"
-    local cert_request_file="${jks_basename}-cert-request.csr" # Changed extension to .csr
+    local cert_request_file="${jks_basename}-cert-request.csr"
     local signed_cert_file="${jks_basename}-cert-signed.pem"
-    local openssl_ext_file="${jks_basename}-openssl-ext.cnf" # New: dedicated for extensions
+    local openssl_ext_file="${jks_basename}-openssl-ext.cnf"
 
     # Check if the component requires a keystore (i.e., it needs its own key pair and signed certificate).
-    if [[ "${component_type}" == "server" || "${component_type}" == "producer" || "${component_type}" == "consumer" || "${component_type}" == "client" ]]; then # Added "client" here as it also needs a keystore for its key
+    if [[ "${component_type}" == "server" || "${component_type}" == "producer" || "${component_type}" == "consumer" || "${component_type}" == "client" ]]; then
         echo "   Generating key pair for '${component_alias}' in '${keystore_file}'..."
         keytool -keystore "${keystore_file}" -alias "${component_alias}" -keyalg RSA -validity "${VALIDITY}" -genkey \
             -storepass "${STORE_PASSWORD}" -keypass "${STORE_PASSWORD}" \
             -dname "CN=${component_alias},OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US" \
-            -ext san="${san_list}" 
+            -ext san="${san_list}"
 
         echo "   ${keystore_file} created with key for '${component_alias}'."
 
         echo "   Generating Certificate Signing Request (CSR) for '${component_alias}'..."
-        # Keytool can generate CSR with SANs if specified during genkey or certreq if using a recent enough version and proper syntax
         keytool -keystore "${keystore_file}" -alias "${component_alias}" -certreq -file "${cert_request_file}" \
             -storepass "${STORE_PASSWORD}" -keypass "${STORE_PASSWORD}"
 
@@ -78,7 +83,7 @@ EOF
         echo "   CA signing '${component_alias}'s certificate with SANs..."
         openssl x509 -req -CA ca.crt -CAkey ca.key -in "${cert_request_file}" -out "${signed_cert_file}" \
             -days "${VALIDITY}" -CAcreateserial -passin pass:"${CA_PASSWORD}" \
-            -extfile "${openssl_ext_file}" -extensions v3_ext # Apply extensions from the new config
+            -extfile "${openssl_ext_file}" -extensions v3_ext
 
         echo "   Signed certificate: ${signed_cert_file}"
 
@@ -89,16 +94,12 @@ EOF
         echo "   Importing signed certificate for '${component_alias}' into '${keystore_file}'..."
         keytool -keystore "${keystore_file}" -alias "${component_alias}" -importcert -file "${signed_cert_file}" \
             -storepass "${STORE_PASSWORD}" -keypass "${STORE_PASSWORD}" -noprompt
+
         echo "   All certificates imported into ${keystore_file}."
     else
         echo "   Component type '${component_type}' does not require a keystore. Skipping keystore steps."
     fi
 
-    echo "   Importing CA certificate into '${truststore_file}'..."
-    keytool -keystore "${truststore_file}" -alias CARoot -importcert -file ca.crt \
-        -storepass "${STORE_PASSWORD}" -noprompt
-
-    echo "   CA certificate imported into ${truststore_file}."
     echo "--- Finished processing ${component_type} component: ${jks_basename} ---"
 
     # Clean up the temporary files
@@ -124,8 +125,9 @@ echo ""
 echo "---------------------------------------------------"
 echo "Certificate generation complete."
 echo "All generated files are located in the './${CERTS_DIR}' directory."
-echo "Remember to configure your Kafka `server.properties` and client configurations"
-echo "with the paths to these generated JKS files and their passwords."
+echo "Single truststore file: truststore.jks"
+echo "Remember to configure your Kafka and client configurations"
+echo "to use the same truststore.jks with password '${STORE_PASSWORD}'."
 echo "---------------------------------------------------"
 
 rm -f *.pem

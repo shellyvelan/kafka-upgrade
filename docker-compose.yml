@@ -52,7 +52,7 @@ services:
 
             KAFKA_SSL_CLIENT_AUTH: required
             KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-keystore.jks
-            KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-controller-0-truststore.jks
+            KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/truststore.jks
             KAFKA_SSL_KEYSTORE_PASSWORD: "${KAFKA_KEYSTORE_PASSWORD}"
             KAFKA_SSL_TRUSTSTORE_PASSWORD: "${KAFKA_TRUSTSTORE_PASSWORD}"
 
@@ -67,8 +67,7 @@ services:
             - kafka-data-controller-0:/var/lib/kafka/data
 
             - ./certs/kafka-controller-0-keystore.jks:/etc/kafka/secrets/kafka-controller-0-keystore.jks:ro
-            - ./certs/kafka-controller-0-truststore.jks:/etc/kafka/secrets/kafka-controller-0-truststore.jks:ro
-            - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro
+            - ./certs/truststore.jks:/etc/kafka/secrets/truststore.jks:ro
 
             - ./configs/kraft-controller.properties:/etc/kafka/kraft-server.properties
             - ./configs/kafka-configs-cli.properties:/etc/kafka/kafka-configs-cli.properties:ro
@@ -110,7 +109,7 @@ services:
             KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
             KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-keystore.jks
-            KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-truststore.jks
+            KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/truststore.jks
             KAFKA_SSL_KEYSTORE_PASSWORD: "${KAFKA_KEYSTORE_PASSWORD}"
             KAFKA_SSL_TRUSTSTORE_PASSWORD: "${KAFKA_TRUSTSTORE_PASSWORD}"
 
@@ -135,7 +134,7 @@ services:
             - kafka-data-broker-0:/var/lib/kafka/data
 
             - ./certs/kafka-broker-0-keystore.jks:/etc/kafka/secrets/kafka-broker-0-keystore.jks:ro
-            - ./certs/kafka-broker-0-truststore.jks:/etc/kafka/secrets/kafka-broker-0-truststore.jks:ro
+            - ./certs/truststore.jks:/etc/kafka/secrets/truststore.jks:ro
 
             - ./configs/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
             - ./configs/kafka-acls-admin-cli.properties:/etc/kafka/kafka-acls-admin-cli.properties:ro
@@ -175,15 +174,15 @@ services:
 
             CONNECT_SECURITY_PROTOCOL: SASL_SSL
             CONNECT_SASL_MECHANISM: SCRAM-SHA-512
-            CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
-            # CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka-broker-0-truststore.jks
+            CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/truststore.jks
+            # CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/truststore.jks
             CONNECT_SSL_TRUSTSTORE_PASSWORD: "${CONNECT_TRUSTSTORE_PASSWORD}"
             CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
             # Consumer configurations (for internal topics and source connectors)
             CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_SSL
             CONNECT_CONSUMER_SASL_MECHANISM: SCRAM-SHA-512
-            CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
+            CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/truststore.jks
             CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: "${CONNECT_TRUSTSTORE_PASSWORD}"
             CONNECT_CONSUMER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
@@ -192,7 +191,7 @@ services:
             # Producer configurations (for internal topics and sink connectors)
             CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
             CONNECT_PRODUCER_SASL_MECHANISM: SCRAM-SHA-512
-            CONNECT_PRODUCER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client-truststore.jks
+            CONNECT_PRODUCER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/truststore.jks
             CONNECT_PRODUCER_SSL_TRUSTSTORE_PASSWORD: "${CONNECT_TRUSTSTORE_PASSWORD}"
             CONNECT_PRODUCER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
 
@@ -216,8 +215,8 @@ services:
         volumes:
             - kafka-connect-data:/var/lib/kafka/connect-data
 
-            - ./certs/client-truststore.jks:/etc/kafka/secrets/client-truststore.jks:ro # Truststore for communicating with brokers
-            # - ./certs/kafka-broker-0-truststore.jks:/etc/kafka/secrets/kafka-broker-0-truststore.jks:ro
+            - ./certs/truststore.jks:/etc/kafka/secrets/truststore.jks:ro # Truststore for communicating with brokers
+            # - ./certs/truststore.jks:/etc/kafka/secrets/truststore.jks:ro
 
             - ./certs/kafka-connect-rest-keystore.jks:/etc/kafka/secrets/kafka-connect-rest-keystore.jks:ro # Keystore for REST server SSL
 
@@ -255,7 +254,7 @@ services:
             - ./configs/akhq/application.yml:/app/application.yml
 
             # Mount the truststore for Kafka broker communication
-            - ./certs/client-truststore.jks:/etc/akhq/secrets/client-truststore.jks:ro
+            - ./certs/truststore.jks:/etc/akhq/secrets/truststore.jks:ro
 
             # Mount the secret files AKHQ needs
             - ./secrets/akhq-credentials.properties:/etc/akhq/secrets/akhq-credentials.properties:ro
