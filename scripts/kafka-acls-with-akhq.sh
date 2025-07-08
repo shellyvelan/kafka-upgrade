@@ -10,7 +10,7 @@ AKHQ_USERNAME="akhq-user" # The username AKHQ will use to connect to Kafka
 AKHQ_CONSUMER_GROUP="Rv_mOiSXQMSkcOpL_jZ01Q"
 
 # The container to execute the commands in
-KAFKA_CONTAINER="kafka-controller-0"
+KAFKA_CONTAINER="b789b33c4f29"
 
 echo "---------------------------------------------------"
 echo "Grant Cluster-wide permissions for topic management (for $USERNAME)"

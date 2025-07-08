@@ -119,7 +119,7 @@ generate_component_certs "server" "kafka-broker-2" "kafka-broker-2" "DNS:kafka-b
 
 generate_component_certs "consumer" "kafka-connect-rest" "kafka-connect-rest" "DNS:localhost,IP:127.0.0.1,DNS:kafka-connect"
 
-generate_component_certs "client" "kafka-connect-client" "client" "DNS:kafka-connect,DNS:localhost"
+# generate_component_certs "client" "kafka-connect-client" "client" "DNS:kafka-connect,DNS:localhost"
 
 echo ""
 echo "---------------------------------------------------"

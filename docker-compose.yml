@@ -216,9 +216,7 @@ services:
             - kafka-connect-data:/var/lib/kafka/connect-data
 
             - ./certs/truststore.jks:/etc/kafka/secrets/truststore.jks:ro # Truststore for communicating with brokers
-            # - ./certs/truststore.jks:/etc/kafka/secrets/truststore.jks:ro
-
-            - ./certs/kafka-connect-rest-keystore.jks:/etc/kafka/secrets/kafka-connect-rest-keystore.jks:ro # Keystore for REST server SSL
+            - ./certs/client-keystore.jks:/etc/kafka/secrets/client-keystore.jks:ro # Keystore for REST server SSL
 
             - ./configs/kafka-connect-jaas.conf:/etc/kafka/kafka-connect-jaas.conf:ro # JAAS for broker authentication
 
