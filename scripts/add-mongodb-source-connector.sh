@@ -1,1 +1,1 @@
-curl -k -X POST https://localhost:8083/connectors -u connect-admin:strong-password  -H "Content-Type: application/json"   --data @mongo-source.json
+curl -k -X POST https://127.0.0.1:8083/connectors -u connect-admin:strong-password  -H "Content-Type: application/json"   --data @mongo-source.json

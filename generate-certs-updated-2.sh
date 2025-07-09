@@ -117,7 +117,10 @@ generate_component_certs "server" "kafka-broker-0" "kafka-broker-0" "DNS:kafka-b
 generate_component_certs "server" "kafka-broker-1" "kafka-broker-1" "DNS:kafka-broker-1" 
 generate_component_certs "server" "kafka-broker-2" "kafka-broker-2" "DNS:kafka-broker-2" 
 
-generate_component_certs "consumer" "kafka-connect-rest" "kafka-connect-rest" "DNS:localhost,IP:127.0.0.1,DNS:kafka-connect"
+generate_component_certs "consumer" "kafka-connect" "kafka-connect" "DNS:localhost,IP:127.0.0.1,DNS:kafka-connect"
+generate_component_certs "consumer" "kafka-client-admin" "kafka-client-admin" "DNS:localhost,IP:127.0.0.1,DNS:kafka-connect"
+generate_component_certs "consumer" "kafka-client" "kafka-client" "DNS:localhost,IP:127.0.0.1"
+generate_component_certs "consumer" "kafka-akhq" "kafka-akhq" "DNS:localhost,IP:127.0.0.1,DNS:akhq"
 
 # generate_component_certs "client" "kafka-connect-client" "client" "DNS:kafka-connect,DNS:localhost"
 

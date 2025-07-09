@@ -11,45 +11,31 @@ akhq:
   connections:
     local-kafka: # A friendly name for your cluster
       properties:
-        bootstrap.servers: "kafka-broker-0:9092" # Connect to your broker's CLIENT listener
-        security.protocol: SASL_SSL
-        sasl.mechanism: SCRAM-SHA-512
-        # JAAS config for AKHQ to authenticate with Kafka brokers
-        sasl.jaas.config: |
-          org.apache.kafka.common.security.scram.ScramLoginModule required
-          username="akhq-user"
-          password="akhq-password";
+        bootstrap.servers: "kafka-broker-0:9092"
         
-        # SSL configuration for AKHQ to trust Kafka brokers
+        security.protocol: SSL 
         ssl.truststore.location: /etc/akhq/secrets/truststore.jks
-        ssl.truststore.password: "confluent" # Reusing connect's truststore password for simplicity
-        ssl.endpoint.identification.algorithm: https # Required if your certificates use hostnames
+        ssl.truststore.password: "${AKHQ_TRUSTSTORE_PASSWORD}" 
+        ssl.endpoint.identification.algorithm: https 
+        ssl.keystore.location: /etc/akhq/secrets/kafka-akhq-keystore.jks 
+        ssl.keystore.password: "${AKHQ_KEYSTORE_PASSWORD}" 
 
-      # Kafka Connect Configuration
       connect:
-        - name: "kafka-connect" # A friendly name for your Connect instance
-          url: "https://kafka-connect:8083" # Use the HTTPS listener
-          basic-auth-username: "connect-admin"
-          basic-auth-password: "strong-password"
-          # If Kafka Connect's REST API also requires client-side SSL (not just server-side)
-          # then you'd also need:
-          ssl-trust-store: /etc/akhq/secrets/truststore.jks # AKHQ trusting Connect
-          ssl-trust-store-password: "confluent"
-          # If Connect requires client certificates from AKHQ (unlikely for basic auth), you'd also add:
-          # ssl-key-store: /path/to/akhq/keystore.jks
-          # ssl-key-store-password: your-password
+        - name: "kafka-connect" 
+          url: "https://kafka-connect:8083" 
+          ssl-trust-store: /etc/akhq/secrets/truststore.jks
+          ssl-trust-store-password: "${AKHQ_TRUSTSTORE_PASSWORD}"
+          ssl-key-store: /etc/akhq/secrets/kafka-akhq-keystore.jks 
+          ssl-key-store-password: "${AKHQ_KEYSTORE_PASSWORD}"
 
-  # AKHQ Authentication (for accessing AKHQ itself)
-  # You can choose one of the methods from the documentation (Basic Auth, JWT, LDAP, etc.)
-  # For a simple start, you can use Basic Auth:
   security:
-    default-group: no-roles # Default group for users authenticated via basic auth
+    default-group: no-roles 
     basic-auth:
     - username: admin
-      password: "eb19cc056d0600178f1b0bd5ab14b9a31d71dd15abf879f7bda20139a7a570f9"
+      password: "eb19cc056d0600178f1b0bd5ab14b9a31d71dd15abf879f7bda20139a7a570f9" 
       groups:
       - admin
     - username: reader
-      password: "eb19cc056d0600178f1b0bd5ab14b9a31d71dd15abf879f7bda20139a7a570f9"
+      password: "eb19cc056d0600178f1b0bd5ab14b9a31d71dd15abf879f7bda20139a7a570f9" 
       groups:
       - reader

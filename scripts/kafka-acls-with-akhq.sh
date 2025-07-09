@@ -3,10 +3,8 @@
 # Define variables
 COMMAND_CONFIG="/etc/kafka/kafka-acls-admin-cli.properties" # Path *inside* the container
 BOOTSTRAP_SERVER="kafka-broker-0:9092" # Internal Docker network hostname (broker listens for admin client requests)
-USERNAME="ninja" # Existing user for Kafka Connect and other admin tasks
 
 # AKHQ Specific Variables
-AKHQ_USERNAME="akhq-user" # The username AKHQ will use to connect to Kafka
 AKHQ_CONSUMER_GROUP="Rv_mOiSXQMSkcOpL_jZ01Q"
 
 # The container to execute the commands in
