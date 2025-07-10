@@ -23,11 +23,11 @@ DR, then Maof and repeat steps.
 
     To add a worker to this swarm, run the following command:
 ```bash
-docker swarm join \
---token SWMTKN-1-49nj1cmql0jkz5s954yi3oex3nedyz0fb0xx14ie39trti4wxv-8vxv8rssmk743ojnwacrr2e7c \
-192.168.99.100:2377
+ docker swarm join \
+ --token SWMTKN-1-49nj1cmql0jkz5s954yi3oex3nedyz0fb0xx14ie39trti4wxv-8vxv8rssmk743ojnwacrr2e7c \
+ 192.168.99.100:2377
 
-To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+ To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
 ```
 2. After following this command: ‘docker swarm join-token manager’. Go to the second and third to-be-manager nodes, and follow the          instructions the command gave you.
 
@@ -48,7 +48,7 @@ To add a manager to this swarm, run 'docker swarm join-token manager' and follow
 
 5. Deploy stack: 
 ```bash
-docker stack deploy -c docker-swarm.yml kafka
+ docker stack deploy -c docker-swarm.yml kafka
 ```
 6. Upload all connectors to the new Kafka connect server. (use scripts we already have with that same jsons, just need to update to what cluster to connect to and add the -u flag)
 
@@ -85,7 +85,7 @@ Controller to Controller: SSL (SSL encryption only, with mTLS) (REST api with ba
 
 1. Generate uuid for cluster: 
 ```bash
-    docker run --rm confluentinc/cp-kafka:7.9.0 kafka-storage.sh random-uuid
+ docker run --rm confluentinc/cp-kafka:7.9.0 kafka-storage.sh random-uuid
 ```
 2. Generate CAs with the script in the project:
     generate-certs.sh
@@ -96,9 +96,9 @@ Controller to Controller: SSL (SSL encryption only, with mTLS) (REST api with ba
 
 4.  
 ```bash
-docker service scale kafka_kafka-broker-0=1
-docker service scale kafka_kafka-broker-1=1 
-docker service scale kafka_kafka-broker-2=1
+ docker service scale kafka_kafka-broker-0=1
+ docker service scale kafka_kafka-broker-1=1 
+ docker service scale kafka_kafka-broker-2=1
 ```
     (make sure everything is good including ssl connections and that you can see "Kafka Server started (kafka.server.KafkaRaftServer)" in the logs)
 
