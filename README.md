@@ -96,9 +96,9 @@ Controller to Controller: SSL (SSL encryption only, with mTLS) (REST api with ba
 
 4.  
 ```bash
-    docker service scale kafka_kafka-broker-0=1
-    docker service scale kafka_kafka-broker-1=1 
-    docker service scale kafka_kafka-broker-2=1
+docker service scale kafka_kafka-broker-0=1
+docker service scale kafka_kafka-broker-1=1 
+docker service scale kafka_kafka-broker-2=1
 ```
     (make sure everything is good including ssl connections and that you can see "Kafka Server started (kafka.server.KafkaRaftServer)" in the logs)
 
