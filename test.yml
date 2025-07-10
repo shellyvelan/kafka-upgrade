@@ -10,10 +10,6 @@ configs:
     file: ./configs/kafka-connect-jaas.conf
   kraft-controller.properties:
     file: ./configs/kraft-controller.properties
-  kafka-configs-cli.properties:
-    file: ./configs/kafka-configs-cli.properties
-  kafka-acls-admin-cli.properties:
-    file: ./configs/kafka-acls-admin-cli.properties
   akhq-application.yml:
     file: ./configs/akhq/application.yml
 
@@ -28,8 +24,6 @@ secrets:
     file: ./certs/truststore.jks
   connect-rest-credentials.properties: # Keep if Connect REST has basic auth, otherwise remove
     file: ./secrets/connect-rest-credentials.properties
-  akhq-credentials.properties: # Keep if AKHQ has basic auth, otherwise remove
-    file: ./secrets/akhq-credentials.properties
   ssl-passwords.properties:
     file: ./secrets/ssl-passwords.properties
   kafka-akhq-keystore.jks:
@@ -99,10 +93,6 @@ services:
     configs:
       - source: kraft-controller.properties
         target: /etc/kafka/kraft-server.properties
-      - source: kafka-configs-cli.properties
-        target: /etc/kafka/kafka-configs-cli.properties
-      - source: kafka-acls-admin-cli.properties
-        target: /etc/kafka/kafka-acls-admin-cli.properties
     secrets:
       - source: kafka-controller-0-keystore.jks
         target: /etc/kafka/secrets/kafka-controller-0-keystore.jks
@@ -153,9 +143,6 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-    configs:
-      - source: kafka-acls-admin-cli.properties
-        target: /etc/kafka/kafka-acls-admin-cli.properties
     secrets:
       - source: kafka-broker-0-keystore.jks
         target: /etc/kafka/secrets/kafka-broker-0-keystore.jks
@@ -274,8 +261,6 @@ services:
     secrets:
       - source: truststore.jks
         target: /etc/akhq/secrets/truststore.jks
-      - source: akhq-credentials.properties # Keep if AKHQ has basic auth, otherwise remove
-        target: /etc/akhq/secrets/akhq-credentials.properties
       - source: ssl-passwords.properties
         target: /etc/akhq/secrets/ssl-passwords.properties
       - source: kafka-akhq-keystore.jks
