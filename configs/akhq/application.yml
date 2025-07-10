@@ -12,22 +12,21 @@ akhq:
     local-kafka: # A friendly name for your cluster
       properties:
         bootstrap.servers: "kafka-broker-0:9092"
-        
         security.protocol: SSL 
         ssl.truststore.location: /etc/akhq/secrets/truststore.jks
         ssl.truststore.password: "${AKHQ_TRUSTSTORE_PASSWORD}" 
         ssl.endpoint.identification.algorithm: https 
         ssl.keystore.location: /etc/akhq/secrets/kafka-akhq-keystore.jks 
         ssl.keystore.password: "${AKHQ_KEYSTORE_PASSWORD}" 
-
       connect:
         - name: "kafka-connect" 
           url: "https://kafka-connect:8083" 
+          basic-auth-username: connect-admin
+          basic-auth-password: strong-password
           ssl-trust-store: /etc/akhq/secrets/truststore.jks
           ssl-trust-store-password: "${AKHQ_TRUSTSTORE_PASSWORD}"
           ssl-key-store: /etc/akhq/secrets/kafka-akhq-keystore.jks 
           ssl-key-store-password: "${AKHQ_KEYSTORE_PASSWORD}"
-
   security:
     default-group: no-roles 
     basic-auth:

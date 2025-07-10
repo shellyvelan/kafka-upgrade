@@ -1,30 +1,24 @@
 #!/bin/bash
 
-# Define variables
 COMMAND_CONFIG="/etc/kafka/secrets/client.properties"
 BOOTSTRAP_SERVER="kafka-broker-0:9092"
 
-# User Specific Variables
 CONNECT_CN="CN=kafka-connect,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US"
 AKHQ_CN="CN=kafka-akhq,OU=Confluent,O=TestOrg,L=MountainView,ST=CA,C=US"
-
-# AKHQ Specific Variables
 AKHQ_CONSUMER_GROUP="Rv_mOiSXQMSkcOpL_jZ01Q"
 
-# The container to execute the commands in
-KAFKA_CONTAINER="d00507117025"
+STACK_NAME=$(docker stack ls --format "{{.Name}}" | grep kafka) # has to have kafka in stack name
+if [ -z "$STACK_NAME" ]; then
+  echo "❌ Could not determine Kafka stack name."
+  exit 1
+fi
 
-######?????????????????
-docker exec "$KAFKA_CONTAINER" kafka-acls \
-  --bootstrap-server "$BOOTSTRAP_SERVER" \
-  --command-config "$COMMAND_CONFIG" \
-  --add \
-  --allow-principal "User:$AKHQ_CN" \
-  --operation Read \
-  --operation Describe \
-  --operation DescribeConfigs \
-  --topic '*' \
-  --resource-pattern-type prefixed
+KAFKA_CONTAINER=$(docker ps --filter "name=${STACK_NAME}_kafka-controller-0" --format "{{.ID}}")
+if [ -z "$KAFKA_CONTAINER" ]; then
+  echo "❌ Kafka controller container not found for stack: $STACK_NAME"
+  exit 1
+fi
+
 
 echo "---------------------------------------------------"
 echo "Grant Cluster-wide permissions for topic management (for connect-cn)"
@@ -118,6 +112,7 @@ docker exec "$KAFKA_CONTAINER" kafka-acls \
   --operation DescribeConfigs \
   --resource-pattern-type prefixed \
   --topic '*'
+
 
 echo "Granting access to internal topics (e.g. __consumer_offsets)"
 docker exec "$KAFKA_CONTAINER" kafka-acls \

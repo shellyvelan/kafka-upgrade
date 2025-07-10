@@ -1,7 +1,0 @@
-services:
-  kafka-broker-0:
-    deploy:
-      replicas: 0
-  kafka-connect:
-    deploy:
-      replicas: 0

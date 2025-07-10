@@ -221,7 +221,6 @@ services:
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
 
       CONNECT_LISTENERS: https://0.0.0.0:8083
-      # CONNECT_REST_ADVERTISED_LISTENERS: https://localhost:8083
       CONNECT_REST_EXTENSION_CLASSES: org.apache.kafka.connect.rest.basic.auth.extension.BasicAuthSecurityRestExtension
       CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE: FILE
       CONNECT_BASIC_AUTH_FILE: /etc/kafka/secrets/connect-rest-credentials.properties
